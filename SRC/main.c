@@ -28,28 +28,28 @@ typedef struct _bitmap_info{
 
 
 /* Move .c */
-bmp_header newBmpHeader(unsigned int header_size, unsigned int data_size) {
+bmp_header newBmpHeader(unsigned int _header_size, unsigned int _data_size) {
     bmp_header bmp_h;
 
     bmp_h.type = 0x4D42;
-    bmp_h.size = header_size + data_size;
+    bmp_h.size = _header_size + _data_size;
     bmp_h.reserved = 0;
-    bmp_h.offset = header_size;
+    bmp_h.offset = _header_size;
 
     return bmp_h;
 }
 
-bmp_info newBmpInfo(int width, int height, unsigned short int bits) {
+bmp_info newBmpInfo(int _width, int _height, unsigned short int _bits) {
     bmp_info bmp_i;
 
     bmp_i.size = sizeof(bmp_info);
-    bmp_i.width = width;
-    bmp_i.height = height;
+    bmp_i.width = _width;
+    bmp_i.height = _height;
     bmp_i.planes = 1;
-    bmp_i.bits = bits;
+    bmp_i.bits = _bits;
 
     bmp_i.compression = 0;
-    bmp_i.imgsize = width * height * bits/8;
+    bmp_i.imgsize = _width * _height * _bits/8;
     bmp_i.xpix = 0x130B;
     bmp_i.ypix = 0x130B;
     bmp_i.color = 0;
@@ -57,12 +57,12 @@ bmp_info newBmpInfo(int width, int height, unsigned short int bits) {
     return bmp_i;
 }
 
-void writeBmpHeader(FILE* f, bmp_header header) {
-   fwrite(&header, 1, sizeof(bmp_header), f);
+void writeBmpHeader(FILE* _f, bmp_header _header) {
+   fwrite(&_header, 1, sizeof(bmp_header), _f);
 }
 
-void writeBmpInfo(FILE *f, bmp_info info) {
-   fwrite(&info, 1, sizeof(bmp_info), f);
+void writeBmpInfo(FILE *_f, bmp_info _info) {
+   fwrite(&_info, 1, sizeof(bmp_info), _f);
 }
 
 /* Move .h */
@@ -79,17 +79,38 @@ typedef struct _pixel {
  *
  *  %return Pixel in RGB format
  */
-rgb_pixel toRGB(char *hexa_value) {
+rgb_pixel toRGB(char *_hexa_value) {
     
     rgb_pixel pixel = {0};
-    if ( sscanf(hexa_value, "%02x%02x%02x", &pixel.r, &pixel.g, &pixel.b) != 3 ) 
+    if ( sscanf(_hexa_value, "%02x%02x%02x", &pixel.r, &pixel.g, &pixel.b) != 3 ) 
         exit(EXIT_FAILURE);
 
     return pixel;
 }
 
-void printPixel(char *txt, rgb_pixel pixel) {
-    printf("%s [R: %d, G: %d, B: %d]\n", txt, pixel.r, pixel.g, pixel.b);
+void printPixel(char *_txt, rgb_pixel _pixel) {
+    printf("%s [R: %d, G: %d, B: %d]\n", _txt, _pixel.r, _pixel.g, _pixel.b);
+}
+
+void set_pixel(char *_pixels, int _x, int _y, int _sizex, int _sizey, int _size ) {
+    int x, y;
+
+    for ( y = _y; y < _sizey; y++ )
+        for ( x = _x; x < _sizex; x++ )
+            _pixels[_x + _y * _size] = 1;
+
+}
+
+void create_sierpinski(char *_pixels, int _iteration, int _size, int _x, int _y, int _img_size) {
+    int x, y;
+    
+    if ( _iteration == 0 ) return;
+    set_pixel(_pixels, _x, _y, _size, _size, _img_size);
+
+    for( x = 0; x < 3; x++ )
+        for ( y = 0; y < 3; y++ )
+            if ( x != 1 || y != 1 )
+                create_sierpinski(_pixels, _iteration - 1, _size, _x + x, _y + y, _img_size);
 }
 
 /* Move .c > main.c */
@@ -102,6 +123,8 @@ int main(int argc, char *argv[]) {
     bmp_header b;
     rgb_pixel background = {0, 0, 0};
     rgb_pixel frontcolor = {255, 255, 255};
+
+    char *pixels;
 
     switch(argc) {
         case 6:
@@ -126,13 +149,16 @@ int main(int argc, char *argv[]) {
 
     f = fopen(filename, "wb");
     width *= width;
+
+    pixels = calloc(width, sizeof(char));
+
     writeBmpHeader(f, newBmpHeader(sizeof(bmp_header) + sizeof(bmp_info), width * 24 / 8));
     writeBmpInfo(f, newBmpInfo(width, width, 24));
-    
+    /*    
     for ( i = 0; i < width; i++)
         for ( j = 0; j < width; j++)
             fwrite(&frontcolor, 1, sizeof(rgb_pixel), f);
-     
+    */
     fclose(f);
 
     printf("Image successfully created [%s]", filename);
