@@ -39,6 +39,7 @@ bmp_header newBmpHeader(unsigned int _header_size, unsigned int _data_size) {
     return bmp_h;
 }
 
+/* Version 3.0 header */
 bmp_info newBmpInfo(int _width, int _height, unsigned short int _bits) {
     bmp_info bmp_i;
 
@@ -94,23 +95,23 @@ void printPixel(char *_txt, rgb_pixel _pixel) {
 
 void set_pixel(char *_pixels, int _x, int _y, int _sizex, int _sizey, int _size ) {
     int x, y;
-
+    int i, j;
     for ( y = _y; y < _sizey; y++ )
         for ( x = _x; x < _sizex; x++ )
-            _pixels[_x + _y * _size] = 1;
+            _pixels[x + y * _size] = 1;
 
+    /* Temporary debug */
+    for ( i = 0; i < _size; i++ ) {
+        for ( j = 0; j < _size; j++ )
+            printf("%c ", (_pixels[j + i * _size]) ? '1' : '0');
+        printf("\n");
+    }
 }
 
-void create_sierpinski(char *_pixels, int _iteration, int _size, int _x, int _y, int _img_size) {
-    int x, y;
-    
-    if ( _iteration == 0 ) return;
-    set_pixel(_pixels, _x, _y, _size, _size, _img_size);
-
-    for( x = 0; x < 3; x++ )
-        for ( y = 0; y < 3; y++ )
-            if ( x != 1 || y != 1 )
-                create_sierpinski(_pixels, _iteration - 1, _size, _x + x, _y + y, _img_size);
+void create_sierpinski(char *_pixels, int _iteration, int _img_size) {
+    int x, y, size;
+    size = _img_size / 3;
+    set_pixel(_pixels, size, size, size + size, size + size, _img_size);
 }
 
 /* Move .c > main.c */
@@ -145,20 +146,27 @@ int main(int argc, char *argv[]) {
 
     printf("Generating image [%s] [%dx%d] - %d iteration.\n", filename, width, width, iteration);
     printPixel("Background color : ", background);
-    printPixel("Front collor : ", frontcolor);
+    printPixel("Front color : ", frontcolor);
 
     f = fopen(filename, "wb");
-    width *= width;
 
-    pixels = calloc(width, sizeof(char));
-
-    writeBmpHeader(f, newBmpHeader(sizeof(bmp_header) + sizeof(bmp_info), width * 24 / 8));
+    /* Temporary Calloc */
+    pixels = calloc(width * width, sizeof(char));
+    create_sierpinski(pixels, iteration, width);
+    
+    /* All the header part */
+    writeBmpHeader(f, newBmpHeader(sizeof(bmp_header) + sizeof(bmp_info), width * width * 24 / 8));
     writeBmpInfo(f, newBmpInfo(width, width, 24));
-    /*    
-    for ( i = 0; i < width; i++)
+
+    /* Writing the matrix */
+    for ( i = 0; i < width; i++ ) {
         for ( j = 0; j < width; j++)
-            fwrite(&frontcolor, 1, sizeof(rgb_pixel), f);
-    */
+            if ( pixels[j + i * width] )
+                fwrite(&background, 1, sizeof(rgb_pixel), f);
+            else
+                fwrite(&frontcolor, 1, sizeof(rgb_pixel), f);
+        /* Padding ? */
+    }
     fclose(f);
 
     printf("Image successfully created [%s]", filename);
