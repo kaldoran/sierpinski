@@ -121,6 +121,8 @@ int main(int argc, char *argv[]) {
     int width = 8;
     int iteration = 1;
     char *filename = NULL;
+
+    int padding = 0;
     bmp_header b;
     rgb_pixel background = {0, 0, 0};
     rgb_pixel frontcolor = {255, 255, 255};
@@ -157,7 +159,8 @@ int main(int argc, char *argv[]) {
     /* All the header part */
     writeBmpHeader(f, newBmpHeader(sizeof(bmp_header) + sizeof(bmp_info), width * width * 24 / 8));
     writeBmpInfo(f, newBmpInfo(width, width, 24));
-
+    
+    padding = 4 - (width * 3 % 4); 
     /* Writing the matrix */
     for ( i = 0; i < width; i++ ) {
         for ( j = 0; j < width; j++)
@@ -165,7 +168,9 @@ int main(int argc, char *argv[]) {
                 fwrite(&background, 1, sizeof(rgb_pixel), f);
             else
                 fwrite(&frontcolor, 1, sizeof(rgb_pixel), f);
-        /* Padding ? */
+
+        if ( padding != 4 ) /* Si il faut padder lets go*/
+            fwrite(&background, 1, padding, f);
     }
     fclose(f);
 
