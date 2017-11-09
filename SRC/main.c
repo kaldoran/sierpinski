@@ -67,9 +67,9 @@ void writeBmpInfo(FILE *f, bmp_info info) {
 
 /* Move .h */
 typedef struct _pixel {
-    char r;
-    char g;
-    char b;
+    unsigned char r;
+    unsigned char g;
+    unsigned char b;
 } rgb_pixel;
 
 /* Move .c*/
@@ -79,43 +79,35 @@ typedef struct _pixel {
  *
  *  %return Pixel in RGB format
  */
-rgb_pixel toRGB(int hexa_value) {
-    rgb_pixel pixel;
-    pixel.r = (char) ((hexa_value >> 16) & 0xFF) / 255.;
-    pixel.g = (char) ((hexa_value >> 8) & 0xFF) / 255.;
-    pixel.b = (char) ((hexa_value) & 0xFF) / 255.;
+rgb_pixel toRGB(char *hexa_value) {
+    
+    rgb_pixel pixel = {0};
+    if ( sscanf(hexa_value, "%02x%02x%02x", &pixel.r, &pixel.g, &pixel.b) != 3 ) 
+        exit(EXIT_FAILURE);
 
     return pixel;
 }
 
-int toBGRHexa(rgb_pixel rgb) {
-    return ((rgb.b & 0xff) << 16) + ((rgb.g & 0xff) << 8) + (rgb.r & 0xff);
-}
-
-void printPixel(rgb_pixel pixel) {
-    printf("[R: %d, G: %d, B: %d]", pixel.r, pixel.g, pixel.b);
+void printPixel(char *txt, rgb_pixel pixel) {
+    printf("%s [R: %d, G: %d, B: %d]\n", txt, pixel.r, pixel.g, pixel.b);
 }
 
 /* Move .c > main.c */
 int main(int argc, char *argv[]) {
     FILE *f = NULL;
-    int i = 0;
+    int i = 0, j = 0;
     int width = 8;
-    int height = 8;
     int iteration = 1;
     char *filename = NULL;
-
     bmp_header b;
     rgb_pixel background = {0, 0, 0};
     rgb_pixel frontcolor = {255, 255, 255};
 
     switch(argc) {
-        case 7:
-            background = toRGB(atoi(argv[6]));
         case 6:
-            frontcolor = toRGB(atoi(argv[5]));
+            background = toRGB(argv[5]);
         case 5:
-            height = atoi(argv[4]);
+            frontcolor = toRGB(argv[4]);
         case 4:
             width = atoi(argv[3]);
         case 3:
@@ -124,19 +116,25 @@ int main(int argc, char *argv[]) {
             filename = argv[1];
             break;
         default: 
-            printf("%s [filename] [iteration] [frontcolor] [background]\n", argv[0]);
+            printf("%s [filename] [iteration] [size] [frontcolor] [background]\n", argv[0]);
             exit(EXIT_FAILURE);
     }
 
-    printf("%d _ %d\n", sizeof(bmp_header), sizeof(bmp_info));
-    printf("%d - %d - %d - %d\n", sizeof(b.type), sizeof(b.size), sizeof(b.reserved), sizeof(b.offset));
-    f = fopen(filename, "wb");
-    writeBmpHeader(f, newBmpHeader(sizeof(bmp_header) + sizeof(bmp_info), width * height * 24 / 8));
-    writeBmpInfo(f, newBmpInfo(width, height, 24));
-    
-    for ( i = 0; i < width * height; i++)
-        fprintf(f, "%d", toBGRHexa(frontcolor));
+    printf("Generating image [%s] [%dx%d] - %d iteration.\n", filename, width, width, iteration);
+    printPixel("Background color : ", background);
+    printPixel("Front collor : ", frontcolor);
 
+    f = fopen(filename, "wb");
+    width *= width;
+    writeBmpHeader(f, newBmpHeader(sizeof(bmp_header) + sizeof(bmp_info), width * 24 / 8));
+    writeBmpInfo(f, newBmpInfo(width, width, 24));
+    
+    for ( i = 0; i < width; i++)
+        for ( j = 0; j < width; j++)
+            fwrite(&frontcolor, 1, sizeof(rgb_pixel), f);
+     
     fclose(f);
+
+    printf("Image successfully created [%s]", filename);
     exit(EXIT_SUCCESS);
 }
