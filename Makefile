@@ -1,5 +1,5 @@
 # Release/Debug
-DEBUG=yes
+DEBUG=no
 
 # Directories
 SRC_DIR = SRC
@@ -8,7 +8,7 @@ OBJ_DIR = OBJ
 BIN_DIR = BIN
 
 CC = gcc
-CFLAGS = -W -Wall -Wextra -O2 -lm 
+CFLAGS = -W -Wall -Wextra -O2 
 BIN = Sierpinski
 
 ifeq ($(DEBUG), yes) 
